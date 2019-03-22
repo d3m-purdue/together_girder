@@ -17,6 +17,12 @@ RUN apt-get update && apt-get install -qy \
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
 
+# go to the configuration directory and change the defaults so it will work with a nearby mongo 
+# docker instance
+WORKDIR /girder/girder/conf
+RUN sed -i -r "s/127.0.0.1/0.0.0.0/" girder.dist.cfg
+RUN sed -i -r "s/localhost:27017/172.17.0.2:27017/" girder.dist.cfg
+
 # go to the plugins directory
 WORKDIR /girder/plugins
 
@@ -27,11 +33,14 @@ RUN rm -r oauth
 # add modsquad backend
 RUN git clone https://github.com/d3m-purdue/modsquad-girder25-plugin.git
 
+WORKDIR /girder
+# pyopenssl line needed to keep girder build from failing
+RUN pip install --upgrade pyopenssl
 
 # build girder with modsquad
-WORKDIR /girder
-RUN pip install --upgrade pyopenssl
 RUN pip install --upgrade --upgrade-strategy eager --editable .[plugins]
 RUN girder-install web --all-plugins
 
 ENTRYPOINT ["girder", "serve"]
+
+
